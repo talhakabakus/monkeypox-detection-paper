@@ -1,0 +1,1 @@
+# monkeypox-detection-paper
