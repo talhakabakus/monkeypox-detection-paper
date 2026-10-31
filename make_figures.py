@@ -6,7 +6,7 @@ Finds every results folder (<model>/<fold>_seed<k>/metrics.json) under /kaggle/w
 Results of a previous notebook version are visible only after adding that version's output as input
 ("Add Input" -> "Your Work" -> noteboo sk -> version). Experiment 2 runs are recognised by "aug_train": true.
 
-Writes to /kaggle/working/figures (PNG 300 dpi + PDF) and figures.zip:
+Writes to /kaggle/working/figures (PNG 600 dpi + PDF) and figures.zip:
   fig2_class_distribution     class counts of the 755 original images
   fig3_architecture           block diagram of the proposed model
   fig4_leak_examples          test/training copies under the leaky random split (only if the pkl is attached)
@@ -47,6 +47,9 @@ EXPERIMENTS = {1: 'Experiment 1: original training images', 2: 'Experiment 2: + 
 # Print palette: blue = DenseNet201, orange = proposed hybrid, gray = all other models; ink for text.
 BLUE, ORANGE, GRAY, INK, MUTED, GRID = '#2a78d6', '#eb6834', '#9a9893', '#0b0b0b', '#52514e', '#e4e3df'
 COLOR = {'densenet201': BLUE, 'hybrid_full': ORANGE}
+# Okabe–Ito colour-blind-safe palette, one fixed colour per class (yellow left out: too light on white)
+CLASS_COLOR = {'Chickenpox': '#E69F00', 'Cowpox': '#56B4E9', 'HFMD': '#009E73', 'Healthy': '#0072B2',
+               'Measles': '#CC79A7', 'Mpox': '#D55E00'}
 
 logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
 # STIX ships with matplotlib, so the layout is identical on Kaggle and locally (Times-like, matches the math)
@@ -59,7 +62,7 @@ plt.rcParams.update({
 
 def save(fig, name):
     for ext in ('png', 'pdf'):
-        fig.savefig(os.path.join(OUT, f'{name}.{ext}'), dpi=300, bbox_inches='tight')
+        fig.savefig(os.path.join(OUT, f'{name}.{ext}'), dpi=600, bbox_inches='tight')
     plt.close(fig)
     print(f'  {name}.png / .pdf')
 
@@ -107,16 +110,21 @@ def load_runs():
 # =============================================================================
 def fig_class_distribution():
     counts = pd.Series(ORIGINAL_COUNTS).rename(index=dict(zip(CLASSES, LABELS))).sort_values()
-    fig, ax = plt.subplots(figsize=(4.6, 2.4))
-    ax.barh(counts.index, counts.values, color=BLUE, height=0.6)
+    fig, ax = plt.subplots(figsize=(4.8, 2.6))
+    ax.barh(counts.index, counts.values, color=[CLASS_COLOR[c] for c in counts.index], height=0.66,
+            edgecolor='white', linewidth=0.8)
     for y, v in enumerate(counts.values):
-        ax.text(v + 4, y, f'{v} ({v / counts.sum():.1%})', va='center', fontsize=8, color=INK)
+        label = ax.text(v + 5, y, f'{v}', va='center', ha='left', fontsize=8.5, color=INK, fontweight='bold')
+        # percentage placed right after the count, whatever its width
+        ax.annotate(f'({v / counts.sum():.1%})', xy=(1, 0.5), xycoords=label, xytext=(3, 0),
+                    textcoords='offset points', va='center', ha='left', fontsize=8, color=MUTED)
     ax.set_xlabel('Number of original images (total 755)')
-    ax.set_xlim(0, counts.max() * 1.3)
+    ax.set_xlim(0, counts.max() * 1.25)
     ax.xaxis.grid(True, color=GRID, linewidth=0.6)
     ax.set_axisbelow(True)
-    ax.spines['left'].set_visible(False)
-    ax.tick_params(axis='y', length=0)
+    for side in ('left', 'top', 'right'):
+        ax.spines[side].set_visible(False)
+    ax.tick_params(axis='y', length=0, labelsize=9, labelcolor=INK)
     save(fig, 'fig2_class_distribution')
 
 
